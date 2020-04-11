@@ -2,4 +2,4 @@
 
 sbt assembly
 
-scp target/scala-2.12/rasberry-pi-assembly-0.1.0-SNAPSHOT.jar pi@10.10.10.126:~
+scp target/scala-2.12/rasberry-pi-assembly-0.0.15-SNAPSHOT.jar pi@raspberrypi.local:~

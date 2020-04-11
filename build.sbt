@@ -1,4 +1,6 @@
 import Dependencies._
+import ReleaseTransformations._
+import com.typesafe.sbt.packager.docker._
 
 lazy val root = (project in file(".")).
   settings(
@@ -15,7 +17,9 @@ lazy val root = (project in file(".")).
       fs2IO,
       atto,
       scalaTest % Test,
-      scalaCheck % Test
+      scalaCheck % Test,
+      "org.apache.logging.log4j" % "log4j-api" % "2.11.1",
+      "org.apache.logging.log4j" % "log4j-core" % "2.11.1"
     ),
     scalacOptions ++= Seq(
       "-encoding", "utf8", // Option and arguments on same line
@@ -28,10 +32,25 @@ lazy val root = (project in file(".")).
       "-language:postfixOps"
     ),
     dockerUsername := Some("chrisalbert"),
-    dockerEntrypoint := Seq("/opt/docker/bin/main"),
-    dockerBaseImage := "hypriot/rpi-java",
     mainClass in (Compile, packageBin) := Some("io.lbert.rasberry.Main"),
     resolvers += Resolver.sonatypeRepo("releases"),
-    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.8"),
-
+    releaseProcess := Seq[ReleaseStep](
+      inquireVersions,                   
+      runClean,                            
+      runTest,                                
+      setReleaseVersion,                     
+      ReleaseStep(releaseStepTask(publish in Docker)),
+      setNextVersion                       
+    ),
+    dockerCommands := Seq(
+      Cmd("FROM hypriot/rpi-java"),
+      Cmd("WORKDIR /opt/docker"),
+      Cmd("RUN", "apt-get update"),
+      Cmd("RUN", "apt-get install wiringpi"),
+      Cmd("ADD --chown=daemon:daemon opt /opt"),
+      Cmd("USER daemon"),
+      Cmd("ENTRYPOINT [\"/opt/docker/bin/main\"]"),
+      Cmd("CMD []")
+    ),
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.8")
   ).enablePlugins(JavaAppPackaging, DockerPlugin)
