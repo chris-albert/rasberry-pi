@@ -11,11 +11,7 @@ lazy val root = (project in file(".")).
     )),
     name := "rasberry-pi",
     libraryDependencies ++= Seq(
-      cats,
-      catsEffect,
-      fs2,
-      fs2IO,
-      atto,
+      zio,
       scalaTest % Test,
       scalaCheck % Test,
       "org.apache.logging.log4j" % "log4j-api" % "2.11.1",
@@ -43,13 +39,12 @@ lazy val root = (project in file(".")).
       setNextVersion                       
     ),
     dockerCommands := Seq(
-      Cmd("FROM hypriot/rpi-java"),
+      Cmd("FROM balenalib/raspberry-pi-openjdk:8-stretch"),
       Cmd("WORKDIR /opt/docker"),
-      Cmd("RUN", "apt-get update"),
-      Cmd("RUN", "apt-get install wiringpi"),
+      Cmd("RUN", "apt-get update && apt-get install wiringpi"),
       Cmd("ADD --chown=daemon:daemon opt /opt"),
       Cmd("USER daemon"),
-      Cmd("ENTRYPOINT [\"/opt/docker/bin/main\"]"),
+      Cmd("ENTRYPOINT [\"/opt/docker/bin/rasberry-pi\"]"),
       Cmd("CMD []")
     ),
     addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.8")

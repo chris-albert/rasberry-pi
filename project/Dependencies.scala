@@ -13,4 +13,6 @@ object Dependencies {
   lazy val atto = "org.tpolecat" %% "atto-core"    % "0.6.4"
 
   lazy val rasberryPi = "com.pi4j" % "pi4j-core" % "1.1"
+
+  lazy val zio = "dev.zio" %% "zio-streams" % "1.0.0-RC18-2"
 }
