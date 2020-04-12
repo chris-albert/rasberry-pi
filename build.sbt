@@ -12,6 +12,11 @@ lazy val root = (project in file(".")).
     name := "rasberry-pi",
     libraryDependencies ++= Seq(
       zio,
+      zioStreams,
+      zioCats,
+      http4sBlazeServer,
+      http4sDsl,
+      http4sCirce,
       scalaTest % Test,
       scalaCheck % Test,
       "org.apache.logging.log4j" % "log4j-api" % "2.11.1",
@@ -47,5 +52,6 @@ lazy val root = (project in file(".")).
       Cmd("ENTRYPOINT [\"/opt/docker/bin/rasberry-pi\"]"),
       Cmd("CMD []")
     ),
-    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.8")
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.8"),
+    addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.0")
   ).enablePlugins(JavaAppPackaging, DockerPlugin)
