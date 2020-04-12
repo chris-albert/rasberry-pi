@@ -2,6 +2,8 @@ import Dependencies._
 import com.typesafe.sbt.packager.docker.Cmd
 import sbtrelease.ReleaseStateTransformations.{inquireVersions, runClean, runTest, setNextVersion, setReleaseVersion}
 
+releaseUseGlobalVersion := false
+
 ThisBuild / organization := "io.lbert"
 ThisBuild / scalaVersion := "2.12.10"
 
