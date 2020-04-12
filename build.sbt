@@ -1,47 +1,50 @@
 import Dependencies._
-import ReleaseTransformations._
-import com.typesafe.sbt.packager.docker._
+import com.typesafe.sbt.packager.docker.Cmd
+import sbtrelease.ReleaseStateTransformations.{inquireVersions, runClean, runTest, setNextVersion, setReleaseVersion}
 
-lazy val root = (project in file(".")).
-  settings(
+lazy val commonSettings = Seq(
+  libraryDependencies ++= Seq(
+    zio,
+    zioStreams,
+    scalaTest % Test,
+    "org.apache.logging.log4j" % "log4j-api" % "2.11.1",
+    "org.apache.logging.log4j" % "log4j-core" % "2.11.1"
+  ),
+  scalacOptions ++= Seq(
+    "-encoding", "utf8", // Option and arguments on same line
+    "-Xfatal-warnings",  // New lines for each options
+    "-deprecation",
+    "-unchecked",
+    "-language:implicitConversions",
+    "-language:higherKinds",
+    "-language:existentials",
+    "-language:postfixOps"
+  ),
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
+  addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.0")
+)
+
+lazy val `zio-raspberry-ws281x` = (project in file("zio-raspberry-ws281x"))
+  .settings(
+    commonSettings,
     inThisBuild(List(
       organization := "io.lbert",
-      scalaVersion := "2.12.7",
-      version      := "0.0.3"
+      scalaVersion := "2.12.10"
     )),
-    name := "rasberry-pi",
+    name := "zio-raspberry-ws281x",
     libraryDependencies ++= Seq(
-      zio,
-      zioStreams,
-      zioCats,
-      http4sBlazeServer,
-      http4sDsl,
-      http4sCirce,
-      scalaTest % Test,
-      scalaCheck % Test,
-      "org.apache.logging.log4j" % "log4j-api" % "2.11.1",
-      "org.apache.logging.log4j" % "log4j-core" % "2.11.1"
-    ),
-    scalacOptions ++= Seq(
-      "-encoding", "utf8", // Option and arguments on same line
-      "-Xfatal-warnings",  // New lines for each options
-      "-deprecation",
-      "-unchecked",
-      "-language:implicitConversions",
-      "-language:higherKinds",
-      "-language:existentials",
-      "-language:postfixOps"
+
     ),
     dockerUsername := Some("chrisalbert"),
     mainClass in (Compile, packageBin) := Some("io.lbert.rasberry.Main"),
     resolvers += Resolver.sonatypeRepo("releases"),
     releaseProcess := Seq[ReleaseStep](
-      inquireVersions,                   
-      runClean,                            
-      runTest,                                
-      setReleaseVersion,                     
+      inquireVersions,
+      runClean,
+      runTest,
+      setReleaseVersion,
       ReleaseStep(releaseStepTask(publish in Docker)),
-      setNextVersion                       
+      setNextVersion
     ),
     dockerCommands := Seq(
       Cmd("FROM balenalib/raspberry-pi-openjdk:8-stretch"),
@@ -52,6 +55,26 @@ lazy val root = (project in file(".")).
       Cmd("ENTRYPOINT [\"/opt/docker/bin/rasberry-pi\"]"),
       Cmd("CMD []")
     ),
-    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.8"),
-    addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.0")
   ).enablePlugins(JavaAppPackaging, DockerPlugin)
+
+lazy val server = (project in file("server"))
+  .settings(
+    commonSettings,
+    inThisBuild(List(
+      organization := "io.lbert",
+      scalaVersion := "2.12.10"
+    )),
+    name := "server",
+    libraryDependencies ++= Seq(
+      zioCats,
+      http4sBlazeServer,
+      http4sCirce,
+      http4sDsl
+    )
+  )
+  .enablePlugins(JavaAppPackaging, DockerPlugin)
+  .dependsOn(`zio-raspberry-ws281x` % "compile->compile;test->test")
+
+lazy val root = (project in file("."))
+  .dependsOn(`zio-raspberry-ws281x` % "compile->compile;test->test")
+  .dependsOn(server % "compile->compile;test->test")

@@ -1,8 +1,14 @@
 
 
-To publish to docker hub
+To publish zio-raspberry-ws281x to docker hub
 ```
-sbt 'release with-defaults'
+sbt 'project zio-raspberry-ws281x' 'release with-defaults'
+```
+
+Running server locally
+```
+sbt 'server/run' 
+
 ```
 
 To get to publish to dockerhub you need to login to docker from the command line 
