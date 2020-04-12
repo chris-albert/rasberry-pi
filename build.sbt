@@ -32,8 +32,22 @@ lazy val `zio-raspberry-ws281x` = (project in file("zio-raspberry-ws281x"))
       scalaVersion := "2.12.10"
     )),
     name := "zio-raspberry-ws281x",
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= Seq()
+  ).enablePlugins(JavaAppPackaging, DockerPlugin)
 
+lazy val server = (project in file("server"))
+  .settings(
+    commonSettings,
+    inThisBuild(List(
+      organization := "io.lbert",
+      scalaVersion := "2.12.10"
+    )),
+    name := "led-server",
+    libraryDependencies ++= Seq(
+      zioCats,
+      http4sBlazeServer,
+      http4sCirce,
+      http4sDsl
     ),
     dockerUsername := Some("chrisalbert"),
     mainClass in (Compile, packageBin) := Some("io.lbert.rasberry.Main"),
@@ -54,22 +68,6 @@ lazy val `zio-raspberry-ws281x` = (project in file("zio-raspberry-ws281x"))
       Cmd("USER daemon"),
       Cmd("ENTRYPOINT [\"/opt/docker/bin/rasberry-pi\"]"),
       Cmd("CMD []")
-    ),
-  ).enablePlugins(JavaAppPackaging, DockerPlugin)
-
-lazy val server = (project in file("server"))
-  .settings(
-    commonSettings,
-    inThisBuild(List(
-      organization := "io.lbert",
-      scalaVersion := "2.12.10"
-    )),
-    name := "server",
-    libraryDependencies ++= Seq(
-      zioCats,
-      http4sBlazeServer,
-      http4sCirce,
-      http4sDsl
     )
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)

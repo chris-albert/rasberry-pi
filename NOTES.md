@@ -1,8 +1,8 @@
 
 
-To publish zio-raspberry-ws281x to docker hub
+To publish led-server to docker hub
 ```
-sbt 'project zio-raspberry-ws281x' 'release with-defaults'
+sbt 'project server' 'release with-defaults'
 ```
 
 Running server locally
@@ -18,7 +18,7 @@ docker login -u "username" -p "password"
 
 To run on raspberry pi
 ```
-docker run --user=root --privileged chrisalbert/rasberry-pi:0.0.16
+docker run --user=root --privileged chrisalbert/led-server:0.0.19
 ```
 
 To see GPIO table:
