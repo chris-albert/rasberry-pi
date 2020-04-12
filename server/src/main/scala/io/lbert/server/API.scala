@@ -7,20 +7,21 @@ import Http4sHelper._
 import io.circe.Json
 import io.lbert.rasberry.Color
 import io.lbert.server.LEDServiceModule.LEDService
-import zio.logging.Logging
+import zio.logging.log._
+import zio.logging.Logging.Logging
 
 object API {
 
   import http4sDsl._
 
-  val live: ZLayer[LEDService with Has[Logging], Nothing, Has[API]] = ZLayer.fromFunction(env =>
+  val live: ZLayer[LEDService with Logging, Nothing, Has[API]] = ZLayer.fromFunction(env =>
     API(HttpRoutes.of[Task] {
       case GET -> Root / "health" =>
         Ok("OK")
       case POST -> Root / "led" / "color" / color =>
         Color.fromString(color) match {
           case Some(value) =>
-            env.get[Logging].logger.log(s"Changing color to [$value]") *>
+            info(s"Changing color to [$value]").provide(env) *>
             env.get.setAll(value).foldM(
               e => InternalServerError(errorJson(e.toString)),
               _ => NoContent()

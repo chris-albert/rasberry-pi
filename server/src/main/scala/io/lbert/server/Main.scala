@@ -37,7 +37,7 @@ object Main extends App {
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
 
 
-    val log = ZLayer.fromEffect(Slf4jLogger.make{(_, message) => message})
+    val log = Slf4jLogger.make{(_, message) => message}
 
     val gpio = GPIOModule.stripLayer() >>> GPIO.live
 
