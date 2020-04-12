@@ -2,10 +2,14 @@ import Dependencies._
 import com.typesafe.sbt.packager.docker.Cmd
 import sbtrelease.ReleaseStateTransformations.{inquireVersions, runClean, runTest, setNextVersion, setReleaseVersion}
 
+ThisBuild / organization := "io.lbert"
+ThisBuild / scalaVersion := "2.12.10"
+
 lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
     zio,
     zioStreams,
+    zioLogging,
     scalaTest % Test,
     "org.apache.logging.log4j" % "log4j-api" % "2.11.1",
     "org.apache.logging.log4j" % "log4j-core" % "2.11.1"
@@ -27,13 +31,19 @@ lazy val commonSettings = Seq(
 lazy val `zio-raspberry-ws281x` = (project in file("zio-raspberry-ws281x"))
   .settings(
     commonSettings,
-    inThisBuild(List(
-      organization := "io.lbert",
-      scalaVersion := "2.12.10"
-    )),
     name := "zio-raspberry-ws281x",
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= Seq()
+  ).enablePlugins(JavaAppPackaging, DockerPlugin)
 
+lazy val server = (project in file("server"))
+  .settings(
+    commonSettings,
+    name := "led-server",
+    libraryDependencies ++= Seq(
+      zioCats,
+      http4sBlazeServer,
+      http4sCirce,
+      http4sDsl
     ),
     dockerUsername := Some("chrisalbert"),
     mainClass in (Compile, packageBin) := Some("io.lbert.rasberry.Main"),
@@ -54,22 +64,6 @@ lazy val `zio-raspberry-ws281x` = (project in file("zio-raspberry-ws281x"))
       Cmd("USER daemon"),
       Cmd("ENTRYPOINT [\"/opt/docker/bin/rasberry-pi\"]"),
       Cmd("CMD []")
-    ),
-  ).enablePlugins(JavaAppPackaging, DockerPlugin)
-
-lazy val server = (project in file("server"))
-  .settings(
-    commonSettings,
-    inThisBuild(List(
-      organization := "io.lbert",
-      scalaVersion := "2.12.10"
-    )),
-    name := "server",
-    libraryDependencies ++= Seq(
-      zioCats,
-      http4sBlazeServer,
-      http4sCirce,
-      http4sDsl
     )
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)

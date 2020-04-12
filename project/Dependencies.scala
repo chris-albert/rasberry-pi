@@ -13,9 +13,10 @@ object Dependencies {
   lazy val raspberryPi = "com.pi4j" % "pi4j-core" % "1.1"
 
   lazy val zioVersion = "1.0.0-RC18-2"
-  lazy val zio        = "dev.zio" %% "zio"              % zioVersion
-  lazy val zioStreams = "dev.zio" %% "zio-streams"      % zioVersion
-  lazy val zioCats    = "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC12"
+  lazy val zio        = "dev.zio" %% "zio"               % zioVersion
+  lazy val zioStreams = "dev.zio" %% "zio-streams"       % zioVersion
+  lazy val zioCats    = "dev.zio" %% "zio-interop-cats"  % "2.0.0.0-RC12"
+  lazy val zioLogging = "dev.zio" %% "zio-logging-slf4j" % "0.2.6"
 
   lazy val http4sVersion = "0.21.3"
 

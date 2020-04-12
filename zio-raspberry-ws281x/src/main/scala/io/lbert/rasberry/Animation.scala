@@ -1,6 +1,5 @@
 package io.lbert.rasberry
 
-import com.github.mbelling.ws281x.Color
 import io.lbert.rasberry.GPIOModule.{Error, GPIO, Pixel, PixelIndex}
 import zio.clock.Clock
 import zio.console.{Console, putStrLn}
@@ -10,17 +9,7 @@ import zio.{Schedule, ZIO}
 
 object Animation {
 
-  val allColors: List[(String,Color)] = List(
-    "white"   -> Color.WHITE,
-    "red"     -> Color.RED,
-    "pink"    -> Color.PINK,
-    "orange"  -> Color.ORANGE,
-    "yellow"  -> Color.YELLOW,
-    "green"   -> Color.GREEN,
-    "magenta" -> Color.MAGENTA,
-    "cyan"    -> Color.CYAN,
-    "blue"    -> Color.BLUE
-  )
+  val allColors: List[(String, Color)] = Color.colorMapping
 
   def runThroughAllColorsStream(): ZStream[Console with GPIO, Error, Unit] =
     ZStream.fromIterable(allColors)

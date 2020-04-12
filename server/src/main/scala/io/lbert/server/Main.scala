@@ -1,13 +1,18 @@
 package io.lbert.server
 
 import cats.effect.ExitCode
+import io.lbert.rasberry.GPIOModule
+import io.lbert.rasberry.GPIOModule.GPIO
+import io.lbert.server.LEDServiceModule.LEDService
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.CORS
-import zio.{App, Has, IO, Task, ZIO}
+import zio.{App, Has, IO, Task, ZIO, ZLayer}
 import zio.console._
 import zio.interop.catz._
 import zio.interop.catz.implicits._
 import org.http4s.implicits._
+import zio.logging.LogAnnotation
+import zio.logging.slf4j.Slf4jLogger
 
 object Main extends App {
 
@@ -31,8 +36,17 @@ object Main extends App {
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
 
+
+    val log = Slf4jLogger.make{(_, message) => message}
+
+    val gpio = GPIOModule.stripLayer() >>> GPIO.live
+
+    val led = (zio.ZEnv.any ++ gpio) >>> LEDService.live
+
+    val api = (zio.ZEnv.any ++ led ++ log) >>> API.live
+
     val prog = getServer
-      .provideSomeLayer(zio.ZEnv.any ++ API.live)
+      .provideSomeLayer(zio.ZEnv.any ++ api)
 
     prog.foldM(
       t => putStrLn(s"Error in program [$t]") *> IO.succeed(0),

@@ -1,6 +1,6 @@
 package io.lbert.rasberry
 
-import com.github.mbelling.ws281x.{Color, LedStripType, Ws281xLedStrip}
+import com.github.mbelling.ws281x.{LedStripType, Ws281xLedStrip}
 import zio._
 
 object GPIOModule {
@@ -24,7 +24,7 @@ object GPIOModule {
     val live: ZLayer[Has[Ws281xLedStrip], Nothing, GPIO] = ZLayer.fromFunction(env =>
       new Service {
         override def setPixel(pixel: Pixel): IO[Error, Unit] =
-          ZIO.effect(env.get.setPixel(pixel.index.index, pixel.color))
+          ZIO.effect(env.get.setPixel(pixel.index.index, Color.toLEDColor(pixel.color)))
           .mapError(StripError)
 
         override def render(): IO[Error, Unit] =
