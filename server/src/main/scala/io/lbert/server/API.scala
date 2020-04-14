@@ -38,7 +38,7 @@ object API {
           .flatMap(a => Stream.fromChunk(Chunk.fromArray(a)))
 
         val body: EntityBody[Task] = Fs2StreamInterop.toFs2(c)
-        
+
         val a = Ok(body)
         a
     })
