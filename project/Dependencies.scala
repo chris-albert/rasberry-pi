@@ -15,8 +15,13 @@ object Dependencies {
   lazy val zioVersion = "1.0.0-RC18-2"
   lazy val zio        = "dev.zio" %% "zio"               % zioVersion
   lazy val zioStreams = "dev.zio" %% "zio-streams"       % zioVersion
-  lazy val zioCats    = "dev.zio" %% "zio-interop-cats"  % "2.0.0.0-RC12"
-  lazy val zioLogging = "dev.zio" %% "zio-logging" % "0.2.6"
+
+  lazy val zioTest          = "dev.zio" %% "zio-test"     % zioVersion % "test"
+  lazy val zioTestSbt       = "dev.zio" %% "zio-test-sbt" % zioVersion % "test"
+  lazy val zioTestFramework = new TestFramework("zio.test.sbt.ZTestFramework")
+
+  lazy val zioCats         = "dev.zio" %% "zio-interop-cats"  % "2.0.0.0-RC12"
+  lazy val zioLogging      = "dev.zio" %% "zio-logging" % "0.2.6"
   lazy val zioSlf4JLogging = "dev.zio" %% "zio-logging-slf4j" % "0.2.6"
 
   lazy val http4sVersion = "0.21.3"

@@ -34,7 +34,12 @@ lazy val `zio-raspberry-ws281x` = (project in file("zio-raspberry-ws281x"))
   .settings(
     commonSettings,
     name := "zio-raspberry-ws281x",
-    libraryDependencies ++= Seq()
+    libraryDependencies ++= Seq(
+      zioTest,
+      zioTestSbt
+    ),
+    testFrameworks += zioTestFramework,
+    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
   ).enablePlugins(JavaAppPackaging, DockerPlugin)
 
 lazy val server = (project in file("server"))
