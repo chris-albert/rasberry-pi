@@ -8,7 +8,8 @@ import zio._
 
 object GPIOQueue {
 
-  type MessageStream = Has[Stream[Nothing, Message]]
+  type MessageStream  = Has[Stream[Nothing, Message]]
+  type MessageStreamM = Has[UIO[Stream[Nothing, Message]]]
 
   sealed trait Message
   object Message {
@@ -17,7 +18,7 @@ object GPIOQueue {
   }
 
   val live: ZLayer[Any, Nothing, GPIO with MessageStream] = ZLayer.fromEffectMany {
-    Queue.sliding[Message](1000).map(queue =>
+    Queue.bounded[Message](1).map(queue =>
       Has(new Service {
         override def setPixel(pixel: Pixel): IO[Error, Unit] =
           queue.offer(Message.SetPixel(pixel)).unit
@@ -26,10 +27,14 @@ object GPIOQueue {
           queue.offer(Message.Render).unit
 
         override def getPixelCount: UIO[Integer] =
-          IO.succeed(450)
+          IO.succeed(1000)
       }) ++ Has(ZStream.fromQueue(queue))
     )
   }
+
+  val broadcast: ZLayer[MessageStream, Nothing, MessageStreamM] = ZLayer.fromFunctionManaged(
+    _.get.broadcastDynamic(10)
+  )
 
   val any: ZLayer[GPIO with MessageStream, Nothing, GPIO with MessageStream] =
     ZLayer.requires[GPIO with MessageStream]
@@ -38,5 +43,12 @@ object GPIOQueue {
     for {
       stream <- ZIO.environment[MessageStream]
       _      <- stream.get.foreach(m => zio.console.putStrLn(s"Got message [$m]"))
+    } yield ()
+
+  val consumeStreamM: ZIO[MessageStreamM with Console, Nothing, Unit] =
+    for {
+      streamM <- ZIO.environment[MessageStreamM]
+      stream  <- streamM.get
+      _       <- stream.foreach(m => zio.console.putStrLn(s"Got message [$m]"))
     } yield ()
 }

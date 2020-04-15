@@ -23,7 +23,7 @@ object Main extends App {
             8080,
             "0.0.0.0"
           )
-          .enableHttp2(true)
+          .enableHttp2(false)
           .withHttpApp(CORS(api.get.api.orNotFound))
           .serve
           .compile[Task, Task, ExitCode]
@@ -45,6 +45,7 @@ object Main extends App {
     val api = (zio.ZEnv.any ++ led ++ log ++ gpio) >>> API.live
 
     val prog = GPIOQueue.consumeStream.fork *> getServer
+//    val prog = getServer
 
     prog.provideLayer(zio.ZEnv.any ++ api ++ gpio).foldM(
       t => putStrLn(s"Error in program [$t]") *> IO.succeed(0),
