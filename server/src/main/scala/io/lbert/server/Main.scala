@@ -8,8 +8,8 @@ import org.http4s.server.middleware.CORS
 import zio.console._
 import zio.interop.catz._
 import zio.interop.catz.implicits._
-import zio.logging.slf4j.Slf4jLogger
 import zio._
+import zio.logging.Logging
 
 object Main extends App {
 
@@ -33,7 +33,9 @@ object Main extends App {
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
 
-    val log = Slf4jLogger.make{(_, message) => message}
+//    val log = Slf4jLogger.make{(_, message) => message}
+//    val log = Slf4jLogger.make{(_, message) => message}
+    val log = Logging.console((_, logEntry) => logEntry)
 
     val gpioQueue = GPIOQueue.live
     val gpio = gpioQueue

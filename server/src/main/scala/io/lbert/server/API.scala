@@ -11,6 +11,7 @@ import io.lbert.server.LEDServiceModule.LEDService
 import zio.logging.log._
 import zio.logging.Logging.Logging
 import zio.stream.Stream
+import scala.concurrent.duration._
 
 object API {
 
@@ -34,12 +35,10 @@ object API {
       case GET -> Root / "subscribe" =>
         val b = env.get[Stream[Nothing, Message]]
 
-        val c = b.map(m => m.toString.getBytes)
-          .flatMap(a => Stream.fromChunk(Chunk.fromArray(a)))
+        val c = b.map(m => m.toString)
+        val cc: fs2.Stream[Task, String] = Fs2StreamInterop.toFs2(c)
 
-        val body: EntityBody[Task] = Fs2StreamInterop.toFs2(c)
-
-        val a = Ok(body)
+        val a = Ok(cc)
         a
     })
   )
