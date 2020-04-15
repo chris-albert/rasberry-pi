@@ -27,14 +27,17 @@ object GPIOQueue {
           queue.offer(Message.Render).unit
 
         override def getPixelCount: UIO[Integer] =
-          IO.succeed(1000)
+          IO.succeed(10)
       }) ++ Has(ZStream.fromQueue(queue))
     )
   }
 
-  val broadcast: ZLayer[MessageStream, Nothing, MessageStreamM] = ZLayer.fromFunctionManaged(
-    _.get.broadcastDynamic(10)
-  )
+  val broadcast: ZLayer[MessageStream with GPIO, Nothing, MessageStreamM with GPIO] = ZLayer.fromFunctionManyManaged { env =>
+    val a = Has(env.get[GPIO.Service])
+
+    val b = env.get[Stream[Nothing, Message]].broadcastDynamic(10)
+    b.map(s => Has(s) ++ a)
+  }
 
   val any: ZLayer[GPIO with MessageStream, Nothing, GPIO with MessageStream] =
     ZLayer.requires[GPIO with MessageStream]

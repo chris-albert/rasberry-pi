@@ -38,13 +38,13 @@ object Main extends App {
     val log = Logging.console((_, logEntry) => logEntry)
 
     val gpioQueue = GPIOQueue.live
-    val gpio = gpioQueue
+    val gpio = gpioQueue >>> GPIOQueue.broadcast
 
     val led = (zio.ZEnv.any ++ gpio) >>> LEDService.live
 
     val api = (zio.ZEnv.any ++ led ++ log ++ gpio) >>> API.live
 
-    val prog = GPIOQueue.consumeStream.fork *> getServer
+    val prog = GPIOQueue.consumeStreamM.fork *> getServer
 //    val prog = getServer
 
     prog.provideLayer(zio.ZEnv.any ++ api ++ gpio).foldM(

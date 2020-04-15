@@ -1,12 +1,12 @@
 package io.lbert.server
 
 import org.http4s.HttpRoutes
-import zio.{ Has, IO, Task, ZLayer}
+import zio.{Has, IO, Task, UIO, ZLayer}
 import zio.interop.catz._
 import Http4sHelper._
 import io.circe.Json
 import io.lbert.rasberry.Color
-import io.lbert.server.GPIOQueue.{Message, MessageStream}
+import io.lbert.server.GPIOQueue.{Message, MessageStream, MessageStreamM}
 import io.lbert.server.LEDServiceModule.LEDService
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame
@@ -21,7 +21,7 @@ object API {
 
   val noOpPipe: fs2.Pipe[Task, WebSocketFrame, Unit] = _.evalMap(_ => IO.unit)
 
-  val live: ZLayer[LEDService with Logging with MessageStream, Nothing, Has[API]] = ZLayer.fromFunction(env =>
+  val live: ZLayer[LEDService with Logging with MessageStreamM, Nothing, Has[API]] = ZLayer.fromFunction(env =>
     API(HttpRoutes.of[Task] {
       case GET -> Root / "health" =>
         Ok("OK")
@@ -37,28 +37,28 @@ object API {
         }
 
       case GET -> Root / "subscribe" =>
-        val b = env.get[Stream[Nothing, Message]]
+        env.get[UIO[Stream[Nothing, Message]]].flatMap{ stream =>
+          val c = stream.map(m => m.toString)
+          val cc: fs2.Stream[Task, String] = Fs2StreamInterop.toFs2(c)
+            .evalMap[Task, String](o => Task(println(s"In subscribe, got message [$o]")).as(o))
 
-        val c = b.map(m => m.toString)
-        val cc: fs2.Stream[Task, String] = Fs2StreamInterop.toFs2(c)
-          .evalMap[Task, String](o => Task(println(s"In subscribe, got message [$o]")).as(o))
+          WebSocketBuilder[Task].build(
+            cc.map(s => Text(s)),
+            noOpPipe
+          )
+        }
 
-        WebSocketBuilder[Task].build(
-          cc.map(s => Text(s)),
-          noOpPipe
-        )
-        
-      case GET -> Root / "subscribe2" =>
-        val b = env.get[Stream[Nothing, Message]]
-
-        val c = b.map(m => m.toString)
-        val cc: fs2.Stream[Task, String] = Fs2StreamInterop.toFs2(c)
-          .evalMap[Task, String](o => Task(println(s"In subscribe, got message [$o]")).as(o))
-
-        WebSocketBuilder[Task].build(
-          cc.map(s => Text(s)),
-          noOpPipe
-        )
+//      case GET -> Root / "subscribe2" =>
+//        val b = env.get[Stream[Nothing, Message]]
+//
+//        val c = b.map(m => m.toString)
+//        val cc: fs2.Stream[Task, String] = Fs2StreamInterop.toFs2(c)
+//          .evalMap[Task, String](o => Task(println(s"In subscribe, got message [$o]")).as(o))
+//
+//        WebSocketBuilder[Task].build(
+//          cc.map(s => Text(s)),
+//          noOpPipe
+//        )
     })
   )
 
