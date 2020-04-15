@@ -1,4 +1,4 @@
-package io.lbert.server
+package io.lbert.rasberry
 
 import io.lbert.rasberry.GPIOModule.GPIO.Service
 import io.lbert.rasberry.GPIOModule.{Error, GPIO, Pixel}

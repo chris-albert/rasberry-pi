@@ -38,8 +38,7 @@ object Animation {
   def setPixels(pixels: List[Pixel]): ZIO[Console with GPIO, Error, Unit] =
     for {
       _     <- putStrLn(s"Setting [${pixels.size}] pixels")
-//      _     <- ZIO.foreachPar(pixels)(GPIO.setPixel)
-      _     <- ZIO.foreach(pixels)(GPIO.setPixel)
+      _     <- ZIO.foreachPar(pixels)(GPIO.setPixel)
       _     <- GPIO.render()
     } yield ()
 }

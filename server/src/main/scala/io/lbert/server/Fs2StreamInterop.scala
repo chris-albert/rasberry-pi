@@ -6,6 +6,7 @@ import zio.interop.catz._
 
 object Fs2StreamInterop {
 
+  //https://github.com/zio/interop-cats/issues/69
   def toFs2[A](zstream: ZStream[Any, Throwable, A]): fs2.Stream[ZIO[Any, Throwable, *], A] =
     fs2.Stream.eval(fs2.concurrent.Queue.bounded[Task, A](1000)).flatMap { fs2Queue =>
       fs2.Stream.eval[Task, Unit](

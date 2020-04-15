@@ -6,7 +6,7 @@ import zio.interop.catz._
 import Http4sHelper._
 import io.circe.Json
 import io.lbert.rasberry.Color
-import io.lbert.server.GPIOQueue.{Message, MessageStreamM}
+import io.lbert.rasberry.GPIOQueue.{Message, MessageStreamM}
 import io.lbert.server.LEDServiceModule.LEDService
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame

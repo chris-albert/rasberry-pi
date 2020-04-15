@@ -1,6 +1,7 @@
 package io.lbert.rasberry
 
 import com.github.mbelling.ws281x.{LedStripType, Ws281xLedStrip}
+import zio.stream.Stream
 import zio._
 
 object GPIOModule {
@@ -35,18 +36,7 @@ object GPIOModule {
       }
     )
 
-    val fake: ZLayer[Any, Nothing, GPIO] = ZLayer.fromFunction(env =>
-      new Service {
-        override def setPixel(pixel: Pixel): IO[Error, Unit] =
-          IO.unit
-
-        override def render(): IO[Error, Unit] =
-          IO.unit
-
-        override def getPixelCount: UIO[Integer] =
-          IO.succeed(450)
-      }
-    )
+//    val queueConsumer: ZIO[]
 
     def setPixel(pixel: Pixel): ZIO[GPIO, Error, Unit] =
       ZIO.accessM(_.get.setPixel(pixel))

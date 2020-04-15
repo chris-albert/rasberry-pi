@@ -1,6 +1,7 @@
 package io.lbert.server
 
 import cats.effect.ExitCode
+import io.lbert.rasberry.GPIOQueue
 import io.lbert.server.LEDServiceModule.LEDService
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
@@ -33,11 +34,10 @@ object Main extends App {
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
 
-//    val log = Slf4jLogger.make{(_, message) => message}
-//    val log = Slf4jLogger.make{(_, message) => message}
     val log = Logging.console((_, logEntry) => logEntry)
 
     val gpioQueue = GPIOQueue.live
+
     val gpio = gpioQueue >>> GPIOQueue.broadcast
 
     val led = (zio.ZEnv.any ++ gpio) >>> LEDService.live
