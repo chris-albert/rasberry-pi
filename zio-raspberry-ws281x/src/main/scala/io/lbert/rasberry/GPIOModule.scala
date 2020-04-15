@@ -1,6 +1,7 @@
 package io.lbert.rasberry
 
 import com.github.mbelling.ws281x.{LedStripType, Ws281xLedStrip}
+import io.lbert.rasberry.GPIOStream.{HasMessageStream, Message}
 import zio.stream.Stream
 import zio._
 
@@ -19,7 +20,7 @@ object GPIOModule {
     trait Service {
       def setPixel(pixel: Pixel): IO[Error, Unit]
       def render(): IO[Error, Unit]
-      def getPixelCount: UIO[Integer]
+      def getPixelCount: UIO[Int]
     }
 
     val live: ZLayer[Has[Ws281xLedStrip], Nothing, GPIO] = ZLayer.fromFunction(env =>
@@ -31,12 +32,20 @@ object GPIOModule {
         override def render(): IO[Error, Unit] =
           ZIO.effect(env.get.render()).mapError(StripError)
 
-        override def getPixelCount: UIO[Integer] =
+        override def getPixelCount: UIO[Int] =
           ZIO.effectTotal(env.get.getLedsCount)
       }
     )
 
-//    val queueConsumer: ZIO[]
+    val streamConsumer: ZIO[HasMessageStream with GPIO, Error, Unit] =
+      for {
+        streamM <- ZIO.environment[HasMessageStream]
+        stream  <- streamM.get
+        _       <- stream.foreach {
+          case Message.SetPixel(pixel) => GPIO.setPixel(pixel)
+          case Message.Render          => GPIO.render()
+        }
+      } yield ()
 
     def setPixel(pixel: Pixel): ZIO[GPIO, Error, Unit] =
       ZIO.accessM(_.get.setPixel(pixel))
@@ -44,7 +53,7 @@ object GPIOModule {
     def render(): ZIO[GPIO, Error, Unit] =
       ZIO.accessM(_.get.render())
 
-    def getPixelCount: ZIO[GPIO, Error, Integer] =
+    def getPixelCount: ZIO[GPIO, Error, Int] =
       ZIO.accessM(_.get.getPixelCount)
   }
 

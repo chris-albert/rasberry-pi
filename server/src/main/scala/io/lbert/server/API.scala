@@ -1,19 +1,18 @@
 package io.lbert.server
 
 import org.http4s.HttpRoutes
-import zio.{Has, IO, Task, UIO, ZLayer}
+import zio.{Has, IO, Task,ZLayer}
 import zio.interop.catz._
 import Http4sHelper._
 import io.circe.Json
 import io.lbert.rasberry.Color
-import io.lbert.rasberry.GPIOQueue.{Message, MessageStreamM}
+import io.lbert.rasberry.GPIOStream.{HasMessageStream, MessageStream}
 import io.lbert.server.LEDServiceModule.LEDService
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import zio.logging.log._
 import zio.logging.Logging.Logging
-import zio.stream.Stream
 
 object API {
 
@@ -21,7 +20,7 @@ object API {
 
   val noOpPipe: fs2.Pipe[Task, WebSocketFrame, Unit] = _.evalMap(_ => IO.unit)
 
-  val live: ZLayer[LEDService with Logging with MessageStreamM, Nothing, Has[API]] = ZLayer.fromFunction(env =>
+  val live: ZLayer[LEDService with Logging with HasMessageStream, Nothing, Has[API]] = ZLayer.fromFunction(env =>
     API(HttpRoutes.of[Task] {
       case GET -> Root / "health" =>
         Ok("OK")
@@ -37,7 +36,7 @@ object API {
         }
 
       case GET -> Root / "subscribe" =>
-        env.get[UIO[Stream[Nothing, Message]]].flatMap{ stream =>
+        env.get[MessageStream].flatMap{ stream =>
           val c = stream.map(m => m.toString)
           val cc: fs2.Stream[Task, String] = Fs2StreamInterop.toFs2(c)
             .evalMap[Task, String](o => Task(println(s"In subscribe, got message [$o]")).as(o))

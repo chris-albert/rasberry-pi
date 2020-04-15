@@ -1,7 +1,9 @@
 package io.lbert.server
 
 import cats.effect.ExitCode
-import io.lbert.rasberry.GPIOQueue
+import io.lbert.rasberry.GPIOModule.GPIO
+import io.lbert.rasberry.GPIOStream.HasMessageStream
+import io.lbert.rasberry.{GPIOModule, GPIOStream}
 import io.lbert.server.LEDServiceModule.LEDService
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
@@ -34,20 +36,23 @@ object Main extends App {
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
 
+    val ledCount = 450
+
     val log = Logging.console((_, logEntry) => logEntry)
 
-    val gpioQueue = GPIOQueue.live
+    val gpioStream = ZLayer.succeed(ledCount) >>> GPIOStream.live
 
-    val gpio = gpioQueue >>> GPIOQueue.broadcast
+    val ledService = (zio.ZEnv.any ++ gpioStream) >>> LEDService.live
 
-    val led = (zio.ZEnv.any ++ gpio) >>> LEDService.live
+    val ledStripGPIO = GPIOModule.stripLayer(ledsCount = ledCount) >>> GPIO.live
 
-    val api = (zio.ZEnv.any ++ led ++ log ++ gpio) >>> API.live
+    val ledConsumer = GPIO.streamConsumer.provideSomeLayer[HasMessageStream](ledStripGPIO)
 
-    val prog = GPIOQueue.consumeStreamM.fork *> getServer
-//    val prog = getServer
+    val api = (zio.ZEnv.any ++ ledService ++ log ++ gpioStream) >>> API.live
 
-    prog.provideLayer(zio.ZEnv.any ++ api ++ gpio).foldM(
+    val prog = ledConsumer.fork *> getServer
+
+    prog.provideLayer(zio.ZEnv.any ++ api ++ gpioStream).foldM(
       t => putStrLn(s"Error in program [$t]") *> IO.succeed(0),
       _ => putStrLn("Program exited successfully") *> IO.succeed(1)
     )
