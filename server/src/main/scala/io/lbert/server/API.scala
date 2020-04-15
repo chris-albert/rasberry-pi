@@ -6,7 +6,7 @@ import zio.interop.catz._
 import Http4sHelper._
 import io.circe.Json
 import io.lbert.rasberry.Color
-import io.lbert.server.GPIOQueue.{Message, MessageStream, MessageStreamM}
+import io.lbert.server.GPIOQueue.{Message, MessageStreamM}
 import io.lbert.server.LEDServiceModule.LEDService
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame
@@ -47,18 +47,6 @@ object API {
             noOpPipe
           )
         }
-
-//      case GET -> Root / "subscribe2" =>
-//        val b = env.get[Stream[Nothing, Message]]
-//
-//        val c = b.map(m => m.toString)
-//        val cc: fs2.Stream[Task, String] = Fs2StreamInterop.toFs2(c)
-//          .evalMap[Task, String](o => Task(println(s"In subscribe, got message [$o]")).as(o))
-//
-//        WebSocketBuilder[Task].build(
-//          cc.map(s => Text(s)),
-//          noOpPipe
-//        )
     })
   )
 

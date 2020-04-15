@@ -27,7 +27,7 @@ object GPIOQueue {
           queue.offer(Message.Render).unit
 
         override def getPixelCount: UIO[Integer] =
-          IO.succeed(10)
+          IO.succeed(450)
       }) ++ Has(ZStream.fromQueue(queue))
     )
   }
