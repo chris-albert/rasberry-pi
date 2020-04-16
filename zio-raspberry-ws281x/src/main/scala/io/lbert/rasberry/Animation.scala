@@ -13,13 +13,13 @@ object Animation {
 
   final case class Sequence(duration: Duration) extends Animation
   final case class Wipe(duration: Duration) extends Animation
-  final case class TheaterChase(duration: Duration, color: Color, channels: Int) extends Animation
+  final case class TheaterChase(duration: Duration, color: Color, channels: Int, flip: Boolean) extends Animation
 
   def animate(animation: Animation): ZIO[Console with Clock with GPIO, Error, Unit] =
     animation match {
       case Sequence(duration)     => runThroughAllColors(duration)
       case Wipe(duration)         => wipeStream(duration).runDrain
-      case TheaterChase(d, c, ch) => theaterChase(d, c, ch)
+      case TheaterChase(d, c, ch, f) => theaterChase(d, c, ch, f)
     }
 
   val allColors: List[(String, Color)] = List(
@@ -39,16 +39,17 @@ object Animation {
     else if(pos < 170) Color(255 - (pos - 85) * 3, 0, (pos - 85) * 3)
     else Color(0, (pos - 170) * 3, 255 - (pos - 170) * 3)
 
-  def getTheaterChase(duration: Duration, color: Color, channels: Int): ZStream[Console with Clock with GPIO, Error, List[Pixel]] = {
-    val each = ZIO.foreach(0 until channels)(channel =>
+  def getTheaterChase(duration: Duration, color: Color, channels: Int, flip: Boolean): ZStream[Console with Clock with GPIO, Error, List[Pixel]] = {
+    val range = 0 until channels
+    val each = ZIO.foreach(if(flip) range else range.reverse)(channel =>
       foreachPixel(i => if((i.index + channel) % channels == 0) color else Color.Black)
     )
     ZStream.fromIterableM(each)
       .forever
   }
 
-  def theaterChase(duration: Duration, color: Color, channels: Int): ZIO[Console with Clock with GPIO, Error, Unit] = {
-    getTheaterChase(duration, color, channels)
+  def theaterChase(duration: Duration, color: Color, channels: Int, flip: Boolean): ZIO[Console with Clock with GPIO, Error, Unit] = {
+    getTheaterChase(duration, color, channels, flip)
         .mapM(setPixels)
         .schedule(Schedule.spaced(duration))
         .runDrain

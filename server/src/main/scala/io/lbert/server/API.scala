@@ -80,7 +80,7 @@ object API {
         for {
           d <- getDuration(query)
           c <- getColor(query)
-        } yield Animation.TheaterChase(d, c, getInt(query, "channels").getOrElse(3))
+        } yield Animation.TheaterChase(d, c, getInt(query, "channels").getOrElse(3), getBool(query, "flip").getOrElse(false))
       case _ => Left(s"No animation found for [$name]")
     }
   }
@@ -113,6 +113,9 @@ object API {
 
   private def getInt(query: Map[String, String], key: String): Option[Int] =
     query.get(key).flatMap(s => Try(s.toInt).toOption)
+
+  private def getBool(query: Map[String, String], key: String): Option[Boolean] =
+    query.get(key).flatMap(s => Try(s.toBoolean).toOption)
 
   val any: ZLayer[Has[API], Nothing, Has[API]] =
     ZLayer.requires[Has[API]]
