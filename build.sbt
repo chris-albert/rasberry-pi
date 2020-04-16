@@ -41,7 +41,7 @@ lazy val `zio-raspberry-ws281x` = (project in file("zio-raspberry-ws281x"))
     testFrameworks += zioTestFramework,
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
   ).enablePlugins(JavaAppPackaging, DockerPlugin)
-g
+
 lazy val server = (project in file("server"))
   .settings(
     commonSettings,
@@ -69,7 +69,7 @@ lazy val server = (project in file("server"))
       Cmd("RUN", "apt-get update && apt-get install wiringpi"),
       Cmd("ADD --chown=daemon:daemon opt /opt"),
       Cmd("USER daemon"),
-      Cmd("ENTRYPOINT [\"/opt/docker/bin/rasberry-pi\"]"),
+      Cmd("ENTRYPOINT [\"/opt/docker/bin/led-server\"]"),
       Cmd("CMD []")
     )
   )

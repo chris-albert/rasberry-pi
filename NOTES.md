@@ -18,7 +18,12 @@ docker login -u "username" -p "password"
 
 To run on raspberry pi
 ```
-docker run --user=root --privileged chrisalbert/led-server:0.0.19
+docker run -d -p 8080:8080 --user=root --privileged chrisalbert/led-server:0.0.26
+```
+
+To stop current docker container
+```
+docker stop $(docker ps --format "{{.ID}}")
 ```
 
 To see GPIO table:

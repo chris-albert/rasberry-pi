@@ -36,7 +36,7 @@ object Main extends App {
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
 
-    val ledCount = 450
+    val ledCount = 428
 
     val log = Logging.console((_, logEntry) => logEntry)
 

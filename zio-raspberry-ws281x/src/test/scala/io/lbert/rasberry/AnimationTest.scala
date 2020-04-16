@@ -17,14 +17,15 @@ object GPIOMock {
 
   final case object SetPixel extends Tag[Pixel, Unit]
   final case object Render extends Tag[Unit, Unit]
-  final case object GetPixelCount extends Tag[Unit, Integer]
+  final case object GetPixelCount extends Tag[Unit, Int]
 
   private val envBuilder: URLayer[Has[Proxy], GPIO] =
     ZLayer.fromService(invoke =>
       new GPIO.Service {
         override def setPixel(pixel: Pixel): IO[GPIOModule.Error, Unit] = invoke(SetPixel, pixel)
         override def render(): IO[GPIOModule.Error, Unit] = invoke(Render)
-        override def getPixelCount: UIO[Integer] = invoke(GetPixelCount)
+        override def getPixelCount: UIO[Int] = invoke(GetPixelCount)
+        override def setBrightness(brightness: GPIOModule.Brightness): IO[GPIOModule.Error, Unit] = ???
       }
     )
 }

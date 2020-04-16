@@ -21,6 +21,7 @@ object GPIOModule {
       def setPixel(pixel: Pixel): IO[Error, Unit]
       def render(): IO[Error, Unit]
       def getPixelCount: UIO[Int]
+      def setBrightness(brightness: Brightness): IO[Error, Unit]
     }
 
     val live: ZLayer[Has[Ws281xLedStrip], Nothing, GPIO] = ZLayer.fromFunction(env =>
@@ -32,6 +33,10 @@ object GPIOModule {
         override def render(): IO[Error, Unit] =
           ZIO.effect(env.get.render()).mapError(StripError)
 
+        override def setBrightness(brightness: Brightness): IO[Error, Unit] =
+          ZIO.effect(env.get.setBrightness(brightness.brightness))
+            .mapError(StripError)
+
         override def getPixelCount: UIO[Int] =
           ZIO.effectTotal(env.get.getLedsCount)
       }
@@ -42,13 +47,17 @@ object GPIOModule {
         streamM <- ZIO.environment[HasMessageStream]
         stream  <- streamM.get
         _       <- stream.foreach {
-          case Message.SetPixel(pixel) => GPIO.setPixel(pixel)
-          case Message.Render          => GPIO.render()
+          case Message.SetPixel(pixel)           => GPIO.setPixel(pixel)
+          case Message.SetBrightness(brightness) => GPIO.setBrightness(brightness)
+          case Message.Render                    => GPIO.render()
         }
       } yield ()
 
     def setPixel(pixel: Pixel): ZIO[GPIO, Error, Unit] =
       ZIO.accessM(_.get.setPixel(pixel))
+
+    def setBrightness(brightness: Brightness): ZIO[GPIO, Error, Unit] =
+      ZIO.accessM(_.get.setBrightness(brightness))
 
     def render(): ZIO[GPIO, Error, Unit] =
       ZIO.accessM(_.get.render())
@@ -95,5 +104,7 @@ object GPIOModule {
   final case class PixelIndex(index: Integer)
 
   final case class Pixel(index: PixelIndex, color: Color)
+
+  final case class Brightness(brightness: Int)
 
 }

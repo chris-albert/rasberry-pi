@@ -1,7 +1,7 @@
 package io.lbert.rasberry
 
 import io.lbert.rasberry.GPIOModule.GPIO.Service
-import io.lbert.rasberry.GPIOModule.{Error, GPIO, Pixel}
+import io.lbert.rasberry.GPIOModule.{Brightness, Error, GPIO, Pixel}
 import zio.console.Console
 import zio.stream.{Stream, ZStream}
 import zio._
@@ -14,6 +14,7 @@ object GPIOStream {
   sealed trait Message
   object Message {
     final case class SetPixel(pixel: Pixel) extends Message
+    final case class SetBrightness(brightness: Brightness) extends Message
     final case object Render extends Message
   }
 
@@ -27,6 +28,9 @@ object GPIOStream {
 
               override def render(): IO[Error, Unit] =
                 queue.offer(Message.Render).unit
+
+              override def setBrightness(brightness: Brightness): IO[Error, Unit] =
+                queue.offer(Message.SetBrightness(brightness)).unit
 
               override def getPixelCount: UIO[Int] =
                 IO.succeed(ledCount.get)
