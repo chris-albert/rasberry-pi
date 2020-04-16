@@ -46,6 +46,22 @@ object AnimationTest extends DefaultRunnableSpec {
 
       val result = app.provideLayer(mockEnv)
       assertM(result)(isUnit)
+    },
+    test("getTheaterChase not flipped") {
+      val a = Animation.getTheaterChaseInitial(Color.White, 3, false, 1)
+      assert(a)(equalTo(List(
+        List(true, false, false),
+        List(false, true, false),
+        List(false, false, true)
+      )))
+    },
+    test("getTheaterChase flipped") {
+      val a = Animation.getTheaterChaseInitial(Color.White, 3, true, 1)
+      assert(a)(equalTo(List(
+        List(true, false, false),
+        List(false, false, true),
+        List(false, true, false)
+      )))
     }
   )
 }

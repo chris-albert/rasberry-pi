@@ -80,7 +80,13 @@ object API {
         for {
           d <- getDuration(query)
           c <- getColor(query)
-        } yield Animation.TheaterChase(d, c, getInt(query, "channels").getOrElse(3), getBool(query, "flip").getOrElse(false))
+        } yield Animation.TheaterChase(
+          d,
+          c,
+          getInt(query, "channels").getOrElse(3),
+          getBool(query, "flip").getOrElse(false),
+          getInt(query, "count").getOrElse(1)
+        )
       case _ => Left(s"No animation found for [$name]")
     }
   }
