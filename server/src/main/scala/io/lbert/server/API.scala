@@ -34,18 +34,17 @@ object API {
     API(HttpRoutes.of[Task] {
       case GET -> Root / "health" =>
         Ok("OK")
-      case POST -> Root / "led" / "all" / "color" / color =>
-        Color.fromString(color) match {
-          case Some(value) => withLedService(_.setAll(value))
-          case None => BadRequest(errorJson(s"Invalid color [$color]"))
+      case req @ POST -> Root / "led" / "solid" =>
+        getColor(req.params) match {
+          case Left(value) => BadRequest(errorJson(s"Invalid color [$value]"))
+          case Right(color) =>
+            getIndex(req.params) match {
+              case Some(pixels) =>
+                withLedService(_.set(pixels.map(Pixel(_, color))))
+              case None =>
+                withLedService(_.setAll(color))
+            }
         }
-      case POST -> Root / "led" / num / "color" / color =>
-        (Color.fromString(color), Try(num.toInt).toOption) match {
-          case (Some(value), Some(index)) =>
-            withLedService(_.set(Pixel(PixelIndex(index), value)))
-          case _ => BadRequest(errorJson(s"Invalid color [$color] or index [$num]"))
-        }
-
       case POST -> Root / "led" / "brightness" / num =>
         Try(num.toInt).toOption match {
           case Some(brightness) =>
@@ -53,13 +52,9 @@ object API {
           case _ => BadRequest(errorJson(s"Invalid brightness [$num]"))
         }
       case req @ POST -> Root / "led" / "animate" / name =>
-        val d = req.params.get("duration")
-        (d.flatMap(d => Try(ScalaDuration(d)).toOption), name) match {
-          case (Some(duration), "sequence") =>
-            withLedService(_.animate(Animation.Sequence(Duration.fromScala(duration))))
-          case (Some(duration), "wipe") =>
-            withLedService(_.animate(Animation.Wipe(Duration.fromScala(duration))))
-          case _ => BadRequest(errorJson(s"Unknown animation [$name] or duration [$d]"))
+        getAnimation(name, req.params) match {
+          case Left(value) => BadRequest(errorJson(value))
+          case Right(value) => withLedService(_.animate(value))
         }
       case GET -> Root / "subscribe" =>
         env.get[MessageStream].flatMap { stream =>
@@ -74,6 +69,50 @@ object API {
         }
     })
   }
+
+  private def getAnimation(name: String, query: Map[String, String]): Either[String, Animation] = {
+    name match {
+      case "sequence" =>
+        getDuration(query).map(Animation.Sequence)
+      case "wipe" =>
+        getDuration(query).map(Animation.Wipe)
+      case "theater" =>
+        for {
+          d <- getDuration(query)
+          c <- getColor(query)
+        } yield Animation.TheaterChase(d, c, getInt(query, "channels").getOrElse(3))
+      case _ => Left(s"No animation found for [$name]")
+    }
+  }
+
+  private def getDuration(query: Map[String, String]): Either[String, Duration] =
+    for {
+      d  <- query.get("duration").toRight("No duration defined")
+      sd <- Try(ScalaDuration(d)).toOption.toRight(s"Invalid duration [$d]")
+    } yield Duration.fromScala(sd)
+
+  private def getColor(query: Map[String, String]): Either[String, Color] =
+    query.get("color") match {
+      case Some(c) => Color.fromString(c).toRight(s"Invalid color [$c]")
+      case None =>
+        (getInt(query, "r"), getInt(query, "g"), getInt(query, "b")) match {
+          case (Some(r), Some(g), Some(b)) => Right(Color(r, g, b))
+          case _ => Left(s"Invalid color selection")
+        }
+    }
+
+  private def getIndex(query: Map[String, String]): Option[List[PixelIndex]] =
+    getInt(query, "pixel") match {
+      case Some(value) => Some(List(PixelIndex(value)))
+      case None =>
+        (getInt(query, "pixelStart"), getInt(query, "pixelFinish")) match {
+          case (Some(s), Some(f)) => Some((s to f).map(PixelIndex).toList)
+          case _ => None
+        }
+    }
+
+  private def getInt(query: Map[String, String], key: String): Option[Int] =
+    query.get(key).flatMap(s => Try(s.toInt).toOption)
 
   val any: ZLayer[Has[API], Nothing, Has[API]] =
     ZLayer.requires[Has[API]]

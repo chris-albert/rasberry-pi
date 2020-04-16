@@ -13,11 +13,13 @@ object Animation {
 
   final case class Sequence(duration: Duration) extends Animation
   final case class Wipe(duration: Duration) extends Animation
+  final case class TheaterChase(duration: Duration, color: Color, channels: Int) extends Animation
 
   def animate(animation: Animation): ZIO[Console with Clock with GPIO, Error, Unit] =
     animation match {
-      case Sequence(duration) => runThroughAllColors(duration)
-      case Wipe(duration)     => wipeStream(duration).runDrain
+      case Sequence(duration)     => runThroughAllColors(duration)
+      case Wipe(duration)         => wipeStream(duration).runDrain
+      case TheaterChase(d, c, ch) => theaterChase(d, c, ch)
     }
 
   val allColors: List[(String, Color)] = List(
@@ -31,6 +33,26 @@ object Animation {
     "cyan"       -> Color(0, 255, 255),
     "blue"       -> Color(0, 0, 255)
   )
+
+  def wheel(pos: Int): Color =
+    if(pos < 85) Color(pos * 3, 255 - pos * 3, 0)
+    else if(pos < 170) Color(255 - (pos - 85) * 3, 0, (pos - 85) * 3)
+    else Color(0, (pos - 170) * 3, 255 - (pos - 170) * 3)
+
+  def getTheaterChase(duration: Duration, color: Color, channels: Int): ZStream[Console with Clock with GPIO, Error, List[Pixel]] = {
+    val each = ZIO.foreach(0 until channels)(channel =>
+      foreachPixel(i => if((i.index + channel) % channels == 0) color else Color.Black)
+    )
+    ZStream.fromIterableM(each)
+      .forever
+  }
+
+  def theaterChase(duration: Duration, color: Color, channels: Int): ZIO[Console with Clock with GPIO, Error, Unit] = {
+    getTheaterChase(duration, color, channels)
+        .mapM(setPixels)
+        .schedule(Schedule.spaced(duration))
+        .runDrain
+  }
 
   def wipeStream(duration: Duration): ZStream[Console with Clock with GPIO, Error, Unit] = {
     ZStream.fromIterable(allColors)
@@ -65,7 +87,7 @@ object Animation {
     } yield ()
 
   def setBrightness(brightness: Brightness): ZIO[Console with GPIO, Error, Unit] =
-    GPIO.setBrightness(brightness)
+    GPIO.setBrightness(brightness) *> GPIO.render()
 
   def foreachPixel(f: PixelIndex => Color): ZIO[Console with GPIO, Error, List[Pixel]] =
     GPIO.getPixelCount.map(count =>

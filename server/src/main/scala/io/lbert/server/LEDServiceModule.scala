@@ -20,7 +20,7 @@ object LEDServiceModule {
 
     trait Service {
       def setAll(color: Color): IO[Error, Unit]
-      def set(pixel: Pixel): IO[Error, Unit]
+      def set(pixels: List[Pixel]): IO[Error, Unit]
       def animate(animation: Animation): IO[Error, Unit]
       def setBrightness(brightness: Brightness): IO[Error, Unit]
     }
@@ -37,8 +37,8 @@ object LEDServiceModule {
             .provide(env)
             .mapError(GPIOError)
 
-        override def set(pixel: Pixel): IO[Error, Unit] =
-          Animation.setPixels(List(pixel))
+        override def set(pixels: List[Pixel]): IO[Error, Unit] =
+          Animation.setPixels(pixels)
           .provide(env)
           .mapError(GPIOError)
 

@@ -101,7 +101,7 @@ object GPIOModule {
   ): UIO[Ws281xLedStrip] = UIO.effectTotal(new Ws281xLedStrip(ledsCount, gpioPin,
     frequencyHz, dma, brightness, channel, invert, stripType, cleanOnExit))
 
-  final case class PixelIndex(index: Integer)
+  final case class PixelIndex(index: Int)
 
   final case class Pixel(index: PixelIndex, color: Color)
 

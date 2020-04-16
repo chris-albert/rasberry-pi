@@ -10,6 +10,9 @@ final case class Color(
 
 object Color {
 
+  val White = Color(255, 255, 255)
+  val Black = Color(0, 0, 0)
+
   val colorMapping = List(
     "white"      -> Color(255, 255, 255),
     "light_gray" -> Color(192, 192, 192),
