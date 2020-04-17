@@ -10,15 +10,6 @@ object Main extends App {
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
 
-    val layer = (zio.ZEnv.any ++ GPIOModule.stripLayer()) >>> GPIO.live
-//    val layer = (zio.ZEnv.any) >>> GPIO.fake
-
-    val animation = Animation.runThroughAllColors(Duration(5, TimeUnit.SECONDS))
-      .provideSomeLayer(layer)
-
-    animation.foldM(
-      t => putStrLn(s"Finished with error [$t]") *> IO.succeed(1),
-      _ => putStrLn("Finished successfully") *> IO.succeed(0)
-    )
+     ???
   }
 }

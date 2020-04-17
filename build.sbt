@@ -12,6 +12,8 @@ lazy val commonSettings = Seq(
     zio,
     zioStreams,
     zioLogging,
+    zioSlf4JLogging,
+    logback,
     scalaTest % Test,
     "org.apache.logging.log4j" % "log4j-api" % "2.11.1",
     "org.apache.logging.log4j" % "log4j-core" % "2.11.1"

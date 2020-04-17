@@ -2,6 +2,8 @@ package io.lbert.rasberry
 
 import io.lbert.rasberry.GPIOModule.{GPIO, Pixel, PixelIndex}
 import zio.console.Console
+import zio.logging.Logging
+import zio.logging.Logging.Logging
 import zio.{Has, IO, UIO, ULayer, URLayer, ZLayer}
 import zio.test._
 import zio.test.mock._
@@ -38,17 +40,16 @@ object AnimationTest extends DefaultRunnableSpec {
     testM("calls GPIO correctly") {
       val pixel = Pixel(PixelIndex(0), Color(0, 0, 0))
       val app = Animation.setPixels(List(pixel))
-      val mockEnv: ULayer[GPIO with Console] = (
-        (PutStrLn(equalTo("Setting [1] pixels")) returns unit) andThen
+      val mockEnv: ULayer[GPIO] = (
         (SetPixel(equalTo(pixel)) returns unit) andThen
           (Render returns unit)
       )
 
-      val result = app.provideLayer(mockEnv)
+      val result = app.provideLayer(mockEnv ++ Logging.console((_, m) => m))
       assertM(result)(isUnit)
     },
     test("getTheaterChase not flipped") {
-      val a = Animation.getTheaterChaseInitial(Color.White, 3, false, 1)
+      val a = Animation.getTheaterChaseInitial(3, false, 1)
       assert(a)(equalTo(List(
         List(true, false, false),
         List(false, true, false),
@@ -56,7 +57,7 @@ object AnimationTest extends DefaultRunnableSpec {
       )))
     },
     test("getTheaterChase flipped") {
-      val a = Animation.getTheaterChaseInitial(Color.White, 3, true, 1)
+      val a = Animation.getTheaterChaseInitial(3, true, 1)
       assert(a)(equalTo(List(
         List(true, false, false),
         List(false, false, true),

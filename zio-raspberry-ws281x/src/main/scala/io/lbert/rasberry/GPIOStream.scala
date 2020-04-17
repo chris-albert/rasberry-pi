@@ -18,6 +18,8 @@ object GPIOStream {
     final case object Render extends Message
   }
 
+  val deadStream: ZLayer[Any, Nothing, HasMessageStream] = ZLayer.succeed(UIO(ZStream.empty))
+
   val live: ZLayer[Has[Int], Nothing, GPIO with HasMessageStream] = ZLayer.fromFunctionManyManaged { ledCount =>
     Queue.bounded[Message](1).toManaged(_.shutdown)
         .flatMap(queue =>

@@ -2,10 +2,11 @@ package io.lbert.rasberry
 
 import io.lbert.rasberry.GPIOModule.{Brightness, Error, GPIO, Pixel, PixelIndex}
 import zio.clock.Clock
-import zio.console.{Console, putStrLn}
+import zio.logging.log._
 import zio.duration.Duration
+import zio.logging.Logging.Logging
 import zio.stream.ZStream
-import zio.{Schedule, UIO, ZIO}
+import zio.{Schedule, ZIO}
 
 sealed trait Animation
 
@@ -14,11 +15,13 @@ object Animation {
   final case class Sequence(duration: Duration) extends Animation
   final case class Wipe(duration: Duration) extends Animation
   final case class TheaterChase(duration: Duration, color: Color, channels: Int, flip: Boolean, count: Int) extends Animation
+  final case class Rainbow(duration: Duration) extends Animation
 
-  def animate(animation: Animation): ZIO[Console with Clock with GPIO, Error, Unit] =
+  def animate(animation: Animation): ZIO[Logging with Clock with GPIO, Error, Unit] =
     animation match {
-      case Sequence(duration)     => runThroughAllColors(duration)
-      case Wipe(duration)         => wipeStream(duration).runDrain
+      case Sequence(duration)           => runThroughAllColors(duration)
+      case Wipe(duration)               => wipeStream(duration).runDrain
+      case Rainbow(duration)            => rainbow(duration)
       case TheaterChase(d, c, ch, f, i) => theaterChase(d, c, ch, f, i)
     }
 
@@ -39,7 +42,16 @@ object Animation {
     else if(pos < 170) Color(255 - (pos - 85) * 3, 0, (pos - 85) * 3)
     else Color(0, (pos - 170) * 3, 255 - (pos - 170) * 3)
 
-  def getTheaterChaseInitial(color: Color, channels: Int, flip: Boolean, grouped: Int, moveBy: Int = 1): List[List[Boolean]] = {
+  def rainbow(duration: Duration): ZIO[Logging with Clock with GPIO, Error, Unit] =
+    ZStream
+      .fromIterable(0 until 256).mapM(i =>
+        foreachPixel(pi => wheel((pi.index + i) & 255)).flatMap(setPixels)
+      )
+      .forever
+      .schedule(Schedule.spaced(duration))
+      .runDrain
+
+  def getTheaterChaseInitial(channels: Int, flip: Boolean, grouped: Int, moveBy: Int = 1): List[List[Boolean]] = {
     val l = List.fill(grouped)(true) ++ List.fill(channels - grouped)(false)
 
     @scala.annotation.tailrec
@@ -82,35 +94,37 @@ object Animation {
       case None => l
     }
 
-  def getTheaterChase(color: Color, channels: Int, flip: Boolean, grouped: Int): ZStream[Console with Clock with GPIO, Error, List[Pixel]] = {
-    val init = getTheaterChaseInitial(color, channels, flip, grouped)
+  def getTheaterChase(
+    colorFunc: (Int, Boolean) => Color,
+    channels: Int,
+    flip: Boolean,
+    grouped: Int,
+  ): ZStream[Logging with Clock with GPIO, Error, List[Pixel]] = {
+    val init = getTheaterChaseInitial(channels, flip, grouped)
     ZStream.fromIterableM(GPIO.getPixelCount.flatMap { pixelCount =>
       ZIO.foreach(init)(i =>
         ZStream.fromIterable(i).forever.take(pixelCount).runCollect
           .map(_.zipWithIndex.map {
-            case (b, index) => Pixel(PixelIndex(index), if(b) color else Color.Black)
+            case (b, index) => Pixel(PixelIndex(index), colorFunc(index, b))
           })
       )
     }).forever
   }
 
-  def getTheaterChaseOld(color: Color, channels: Int, flip: Boolean, count: Int): ZStream[Console with Clock with GPIO, Error, List[Pixel]] = {
-    val range = 0 until channels
-    val each = ZIO.foreach(if(flip) range else range.reverse)(channel =>
-      foreachPixel(i => if((i.index + channel) % channels == 0) color else Color.Black)
-    )
-    ZStream.fromIterableM(each)
-      .forever
-  }
-
-  def theaterChase(duration: Duration, color: Color, channels: Int, flip: Boolean, count: Int): ZIO[Console with Clock with GPIO, Error, Unit] = {
-    getTheaterChase(color, channels, flip, count)
+  def theaterChase(
+    duration: Duration,
+    color: Color,
+    channels: Int,
+    flip: Boolean,
+    count: Int,
+    backgroundColor: Color = Color.Black
+  ): ZIO[Logging with Clock with GPIO, Error, Unit] =
+    getTheaterChase((_, b) => if(b) color else backgroundColor, channels, flip, count)
         .mapM(setPixels)
         .schedule(Schedule.spaced(duration))
         .runDrain
-  }
 
-  def wipeStream(duration: Duration): ZStream[Console with Clock with GPIO, Error, Unit] = {
+  def wipeStream(duration: Duration): ZStream[Logging with Clock with GPIO, Error, Unit] = {
     ZStream.fromIterable(allColors)
       .mapM {
         case (_, color) =>
@@ -123,36 +137,36 @@ object Animation {
       }
   }
 
-  def runThroughAllColorsStream(): ZStream[Console with GPIO, Error, Unit] =
+  def runThroughAllColorsStream(): ZStream[Logging with GPIO, Error, Unit] =
     ZStream.fromIterable(allColors)
         .mapM {
           case (name, color) =>
-            putStrLn(s"Setting all pixels to [$name]") *>
+            debug(s"Setting all pixels to [$name]") *>
               setAllPixelsToColor(color)
         }
 
-  def runThroughAllColors(duration: Duration): ZIO[Console with Clock with GPIO, Error, Unit] =
+  def runThroughAllColors(duration: Duration): ZIO[Logging with Clock with GPIO, Error, Unit] =
     runThroughAllColorsStream().forever
       .schedule(Schedule.spaced(duration)).runDrain
 
-  def setAllPixelsToColor(color: Color): ZIO[Console with GPIO, Error, Unit] =
+  def setAllPixelsToColor(color: Color): ZIO[Logging with GPIO, Error, Unit] =
     for {
-      _      <- putStrLn(s"Setting all pixels to [$color]")
+      _      <- debug(s"Setting all pixels to [$color]")
       pixels <- foreachPixel(_ => color)
       _      <- setPixels(pixels)
     } yield ()
 
-  def setBrightness(brightness: Brightness): ZIO[Console with GPIO, Error, Unit] =
+  def setBrightness(brightness: Brightness): ZIO[Logging with GPIO, Error, Unit] =
     GPIO.setBrightness(brightness) *> GPIO.render()
 
-  def foreachPixel(f: PixelIndex => Color): ZIO[Console with GPIO, Error, List[Pixel]] =
+  def foreachPixel(f: PixelIndex => Color): ZIO[Logging with GPIO, Error, List[Pixel]] =
     GPIO.getPixelCount.map(count =>
       (0 until count).map(i => Pixel(PixelIndex(i), f(PixelIndex(i)))).toList
     )
 
-  def setPixels(pixels: List[Pixel]): ZIO[Console with GPIO, Error, Unit] =
+  def setPixels(pixels: List[Pixel]): ZIO[Logging with GPIO, Error, Unit] =
     for {
-      _     <- putStrLn(s"Setting [${pixels.size}] pixels")
+      _     <- debug(s"Setting [${pixels.size}] pixels")
       _     <- ZIO.foreachPar(pixels)(GPIO.setPixel)
       _     <- GPIO.render()
     } yield ()

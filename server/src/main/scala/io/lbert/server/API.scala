@@ -76,6 +76,8 @@ object API {
         getDuration(query).map(Animation.Sequence)
       case "wipe" =>
         getDuration(query).map(Animation.Wipe)
+      case "rainbow" =>
+        getDuration(query).map(Animation.Rainbow)
       case "theater" =>
         for {
           d <- getDuration(query)

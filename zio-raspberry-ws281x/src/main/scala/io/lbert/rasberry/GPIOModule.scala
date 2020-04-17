@@ -2,8 +2,9 @@ package io.lbert.rasberry
 
 import com.github.mbelling.ws281x.{LedStripType, Ws281xLedStrip}
 import io.lbert.rasberry.GPIOStream.{HasMessageStream, Message}
-import zio.stream.Stream
 import zio._
+import zio.logging.Logging.Logging
+import zio.logging.log._
 
 object GPIOModule {
 
@@ -24,13 +25,14 @@ object GPIOModule {
       def setBrightness(brightness: Brightness): IO[Error, Unit]
     }
 
-    val live: ZLayer[Has[Ws281xLedStrip], Nothing, GPIO] = ZLayer.fromFunction(env =>
+    val live: ZLayer[Has[Ws281xLedStrip] with Logging, Nothing, GPIO] = ZLayer.fromFunction(env =>
       new Service {
         override def setPixel(pixel: Pixel): IO[Error, Unit] =
           ZIO.effect(env.get.setPixel(pixel.index.index, Color.toLEDColor(pixel.color)))
           .mapError(StripError)
 
         override def render(): IO[Error, Unit] =
+          info("Calling render").provide(env) *>
           ZIO.effect(env.get.render()).mapError(StripError)
 
         override def setBrightness(brightness: Brightness): IO[Error, Unit] =
@@ -39,6 +41,22 @@ object GPIOModule {
 
         override def getPixelCount: UIO[Int] =
           ZIO.effectTotal(env.get.getLedsCount)
+      }
+    )
+
+    val fake: ZLayer[Has[Int] with Logging, Nothing, GPIO] = ZLayer.fromFunction(env =>
+      new Service {
+        override def setPixel(pixel: Pixel): IO[Error, Unit] =
+          ZIO.unit
+
+        override def render(): IO[Error, Unit] =
+          info("Calling render").provide(env).unit
+
+        override def setBrightness(brightness: Brightness): IO[Error, Unit] =
+          ZIO.unit
+
+        override def getPixelCount: UIO[Int] =
+          UIO(env.get)
       }
     )
 

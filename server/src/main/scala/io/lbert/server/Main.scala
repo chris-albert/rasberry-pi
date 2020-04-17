@@ -2,7 +2,6 @@ package io.lbert.server
 
 import cats.effect.ExitCode
 import io.lbert.rasberry.GPIOModule.GPIO
-import io.lbert.rasberry.GPIOStream.HasMessageStream
 import io.lbert.rasberry.{GPIOModule, GPIOStream}
 import io.lbert.server.LEDServiceModule.LEDService
 import org.http4s.implicits._
@@ -12,9 +11,13 @@ import zio.console._
 import zio.interop.catz._
 import zio.interop.catz.implicits._
 import zio._
-import zio.logging.Logging
+import zio.logging.slf4j.Slf4jLogger
 
 object Main extends App {
+
+  private val ledCount = 428
+
+  private val log = Slf4jLogger.make((_, message) => message)
 
   def getServer: ZIO[zio.ZEnv with Has[API], Throwable, Unit] =
     for {
@@ -34,27 +37,43 @@ object Main extends App {
       }
     } yield ()
 
-  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
+  private def runStream(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
 
-    val ledCount = 428
+    val gpio = (ZLayer.succeed(ledCount) ++ log) >>> GPIO.fake
 
-    val log = Logging.console((_, logEntry) => logEntry)
+    val ledService = (zio.ZEnv.any ++ gpio ++ log) >>> LEDService.live
 
-    val gpioStream = ZLayer.succeed(ledCount) >>> GPIOStream.live
+//    val ledStripGPIO = GPIOModule.stripLayer(ledsCount = ledCount) >>> GPIO.live
+//    val ledStripGPIO = (ZLayer.succeed(ledCount) ++ log) >>> GPIO.fake
 
-    val ledService = (zio.ZEnv.any ++ gpioStream) >>> LEDService.live
+    val api = (zio.ZEnv.any ++ ledService ++ log ++ GPIOStream.deadStream) >>> API.live
 
-    val ledStripGPIO = GPIOModule.stripLayer(ledsCount = ledCount) >>> GPIO.live
+    val prog = getServer
 
-    val ledConsumer = GPIO.streamConsumer.provideSomeLayer[HasMessageStream](ledStripGPIO)
+    prog.provideLayer(zio.ZEnv.any ++ api).foldM(
+      t => putStrLn(s"Error in program [$t]") *> IO.succeed(0),
+      _ => putStrLn("Program exited successfully") *> IO.succeed(1)
+    )
+  }
+
+  private def runDirect(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
+
+    val gpioStream = GPIOStream.deadStream
+
+    val ledStripGPIO = (log ++ GPIOModule.stripLayer(ledsCount = ledCount)) >>> GPIO.live
+
+    val ledService = (zio.ZEnv.any ++ gpioStream ++ ledStripGPIO ++ log) >>> LEDService.live
 
     val api = (zio.ZEnv.any ++ ledService ++ log ++ gpioStream) >>> API.live
 
-    val prog = ledConsumer.fork *> getServer
+    val prog = getServer
 
     prog.provideLayer(zio.ZEnv.any ++ api ++ gpioStream).foldM(
       t => putStrLn(s"Error in program [$t]") *> IO.succeed(0),
       _ => putStrLn("Program exited successfully") *> IO.succeed(1)
     )
   }
+
+  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
+    if(true) runDirect(args) else runStream(args)
 }

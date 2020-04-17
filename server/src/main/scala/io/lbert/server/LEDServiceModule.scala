@@ -4,7 +4,7 @@ import io.lbert.rasberry.{Animation, Color, GPIOModule}
 import io.lbert.rasberry.GPIOModule.{Brightness, GPIO, Pixel}
 import zio.clock.Clock
 import zio.{Has, IO, ZLayer}
-import zio.console.Console
+import zio.logging.Logging.Logging
 
 object LEDServiceModule {
 
@@ -25,7 +25,7 @@ object LEDServiceModule {
       def setBrightness(brightness: Brightness): IO[Error, Unit]
     }
 
-    val live: ZLayer[Console with GPIO with Clock, Nothing, LEDService] = ZLayer.fromFunction(env =>
+    val live: ZLayer[Logging with GPIO with Clock, Nothing, LEDService] = ZLayer.fromFunction(env =>
       new Service {
         override def setAll(color: Color): IO[Error, Unit] =
           Animation.setAllPixelsToColor(color)
