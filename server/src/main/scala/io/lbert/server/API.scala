@@ -8,6 +8,7 @@ import io.circe.Json
 import io.lbert.rasberry.{Animation, Color}
 import io.lbert.rasberry.GPIOModule.{Brightness, Pixel, PixelIndex}
 import io.lbert.rasberry.GPIOStream.{HasMessageStream, MessageStream}
+import io.lbert.server.AnimationJobModule.AnimationJob
 import io.lbert.server.LEDServiceModule.LEDService
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame
@@ -24,7 +25,7 @@ object API {
 
   val noOpPipe: fs2.Pipe[Task, WebSocketFrame, Unit] = _.evalMap(_ => IO.unit)
 
-  val live: ZLayer[LEDService with Logging with HasMessageStream, Nothing, Has[API]] = ZLayer.fromFunction { env =>
+  val live: ZLayer[LEDService with Logging with HasMessageStream with AnimationJob, Nothing, Has[API]] = ZLayer.fromFunction { env =>
     def withLedService(func: LEDService.Service => IO[LEDServiceModule.Error, Unit]): Task[Response[Task]] =
       func(env.get).foldM(
         e => InternalServerError(errorJson(e.toString)),
@@ -51,10 +52,12 @@ object API {
             withLedService(_.setBrightness(Brightness(brightness)))
           case _ => BadRequest(errorJson(s"Invalid brightness [$num]"))
         }
+      case POST -> Root / "led" / "animate" / "stop" =>
+        AnimationJob.stopJob().provide(env).flatMap(_ => NoContent())
       case req @ POST -> Root / "led" / "animate" / name =>
         getAnimation(name, req.params) match {
           case Left(value) => BadRequest(errorJson(value))
-          case Right(value) => withLedService(_.animate(value))
+          case Right(value) => withLedService(s => AnimationJob.setJob(s.animate(value)).provide(env))
         }
       case GET -> Root / "subscribe" =>
         env.get[MessageStream].flatMap { stream =>
@@ -85,6 +88,7 @@ object API {
         } yield Animation.TheaterChase(
           d,
           c,
+          getColor(query, "backgroundColor").getOrElse(Color.Black),
           getInt(query, "channels").getOrElse(3),
           getBool(query, "flip").getOrElse(false),
           getInt(query, "count").getOrElse(1)
@@ -99,8 +103,8 @@ object API {
       sd <- Try(ScalaDuration(d)).toOption.toRight(s"Invalid duration [$d]")
     } yield Duration.fromScala(sd)
 
-  private def getColor(query: Map[String, String]): Either[String, Color] =
-    query.get("color") match {
+  private def getColor(query: Map[String, String], name: String = "color"): Either[String, Color] =
+    query.get(name) match {
       case Some(c) => Color.fromString(c).toRight(s"Invalid color [$c]")
       case None =>
         (getInt(query, "r"), getInt(query, "g"), getInt(query, "b")) match {

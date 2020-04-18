@@ -14,7 +14,7 @@ object Animation {
 
   final case class Sequence(duration: Duration) extends Animation
   final case class Wipe(duration: Duration) extends Animation
-  final case class TheaterChase(duration: Duration, color: Color, channels: Int, flip: Boolean, count: Int) extends Animation
+  final case class TheaterChase(duration: Duration, color: Color, bgColor: Color, channels: Int, flip: Boolean, count: Int) extends Animation
   final case class Rainbow(duration: Duration) extends Animation
 
   def animate(animation: Animation): ZIO[Logging with Clock with GPIO, Error, Unit] =
@@ -22,7 +22,7 @@ object Animation {
       case Sequence(duration)           => runThroughAllColors(duration)
       case Wipe(duration)               => wipeStream(duration).runDrain
       case Rainbow(duration)            => rainbow(duration)
-      case TheaterChase(d, c, ch, f, i) => theaterChase(d, c, ch, f, i)
+      case TheaterChase(d, c, bgc, ch, f, i) => theaterChase(d, c, bgc, ch, f, i)
     }
 
   val allColors: List[(String, Color)] = List(
@@ -114,10 +114,10 @@ object Animation {
   def theaterChase(
     duration: Duration,
     color: Color,
+    backgroundColor: Color,
     channels: Int,
     flip: Boolean,
-    count: Int,
-    backgroundColor: Color = Color.Black
+    count: Int
   ): ZIO[Logging with Clock with GPIO, Error, Unit] =
     getTheaterChase((_, b) => if(b) color else backgroundColor, channels, flip, count)
         .mapM(setPixels)

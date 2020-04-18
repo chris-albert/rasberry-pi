@@ -3,6 +3,7 @@ package io.lbert.server
 import cats.effect.ExitCode
 import io.lbert.rasberry.GPIOModule.GPIO
 import io.lbert.rasberry.{GPIOModule, GPIOStream}
+import io.lbert.server.AnimationJobModule.AnimationJob
 import io.lbert.server.LEDServiceModule.LEDService
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
@@ -46,7 +47,7 @@ object Main extends App {
 //    val ledStripGPIO = GPIOModule.stripLayer(ledsCount = ledCount) >>> GPIO.live
 //    val ledStripGPIO = (ZLayer.succeed(ledCount) ++ log) >>> GPIO.fake
 
-    val api = (zio.ZEnv.any ++ ledService ++ log ++ GPIOStream.deadStream) >>> API.live
+    val api = (zio.ZEnv.any ++ ledService ++ log ++ GPIOStream.deadStream ++ AnimationJob.live) >>> API.live
 
     val prog = getServer
 
@@ -64,7 +65,7 @@ object Main extends App {
 
     val ledService = (zio.ZEnv.any ++ gpioStream ++ ledStripGPIO ++ log) >>> LEDService.live
 
-    val api = (zio.ZEnv.any ++ ledService ++ log ++ gpioStream) >>> API.live
+    val api = (zio.ZEnv.any ++ ledService ++ log ++ gpioStream ++ AnimationJob.live) >>> API.live
 
     val prog = getServer
 
