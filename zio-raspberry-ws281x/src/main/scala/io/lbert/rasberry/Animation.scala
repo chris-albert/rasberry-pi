@@ -42,14 +42,15 @@ object Animation {
     else if(pos < 170) Color(255 - (pos - 85) * 3, 0, (pos - 85) * 3)
     else Color(0, (pos - 170) * 3, 255 - (pos - 170) * 3)
 
-  def rainbow(duration: Duration): ZIO[Logging with Clock with GPIO, Error, Unit] =
-    ZStream
-      .fromIterable(0 until 256).mapM(i =>
-        foreachPixel(pi => wheel((pi.index + i) & 255)).flatMap(setPixels)
-      )
+  def rainbow(duration: Duration): ZIO[Logging with Clock with GPIO, Error, Unit] = {
+    val build = ZIO.foreach(0 until 256) { i =>
+      foreachPixel(pi => wheel((pi.index + i) & 255))
+    }
+    ZStream.fromEffect(build).flatMap(l => ZStream.fromIterable(l).mapM(setPixels))
       .forever
       .schedule(Schedule.spaced(duration))
       .runDrain
+  }
 
   def getTheaterChaseInitial(channels: Int, flip: Boolean, grouped: Int, moveBy: Int = 1): List[List[Boolean]] = {
     val l = List.fill(grouped)(true) ++ List.fill(channels - grouped)(false)
@@ -101,14 +102,15 @@ object Animation {
     grouped: Int,
   ): ZStream[Logging with Clock with GPIO, Error, List[Pixel]] = {
     val init = getTheaterChaseInitial(channels, flip, grouped)
-    ZStream.fromIterableM(GPIO.getPixelCount.flatMap { pixelCount =>
-      ZIO.foreach(init)(i =>
+    val build = GPIO.getPixelCount.flatMap { pixelCount =>
+      ZIO.foreach(init) { i =>
         ZStream.fromIterable(i).forever.take(pixelCount).runCollect
           .map(_.zipWithIndex.map {
             case (b, index) => Pixel(PixelIndex(index), colorFunc(index, b))
           })
-      )
-    }).forever
+      }
+    }
+    ZStream.fromEffect(build).flatMap(l => ZStream.fromIterable(l).forever)
   }
 
   def theaterChase(
