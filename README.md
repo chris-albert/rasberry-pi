@@ -5,3 +5,6 @@ library for controlling individual addressable LED strips.
 
 I dislike writing non-pure code now, so for this project I had to use ZIO, and the `Streams`
 api makes is super simple to create animations. 
+
+Inspiration from :
+ - https://tutorials-raspberrypi.com/connect-control-raspberry-pi-ws2812-rgb-led-strips/
